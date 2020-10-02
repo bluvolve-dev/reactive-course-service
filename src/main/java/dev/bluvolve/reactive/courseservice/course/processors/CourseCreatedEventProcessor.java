@@ -1,37 +1,49 @@
 package dev.bluvolve.reactive.courseservice.course.processors;
 
 import dev.bluvolve.reactive.courseservice.course.events.CourseCreated;
-import dev.bluvolve.reactive.courseservice.course.listeners.ICourseCreatedEventListener;
-import dev.bluvolve.reactive.courseservice.course.mappers.CourseMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ReflectionUtils;
+import reactor.core.publisher.FluxSink;
+
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Consumer;
 
 /**
  * Processes the 'CourseCreated' event.
  */
 @Slf4j
 @Component
-public class CourseCreatedEventProcessor implements ApplicationListener<CourseCreated> {
-    private ICourseCreatedEventListener listener;
-    private final CourseMapper mapper;
+public class CourseCreatedEventProcessor
+        implements ApplicationListener<CourseCreated>,
+        Consumer<FluxSink<CourseCreated>> {
 
-    public CourseCreatedEventProcessor(CourseMapper mapper) {
-        this.mapper = mapper;
-    }
+    private final Executor executor;
+    private final BlockingQueue<CourseCreated> queue = new LinkedBlockingQueue<>();
 
-    public void register(ICourseCreatedEventListener listener) {
-        this.listener = listener;
+    CourseCreatedEventProcessor(Executor executor) {
+        this.executor = executor;
     }
 
     @Override
     public void onApplicationEvent(CourseCreated event) {
-        this.onEvent(event);
+        this.queue.offer(event);
     }
 
-    private void onEvent(CourseCreated event) {
-        if (this.listener != null) {
-            this.listener.onData(event, mapper);
-        }
+    @Override
+    public void accept(FluxSink<CourseCreated> sink) {
+        this.executor.execute(() -> {
+            while (true)
+                try {
+                    CourseCreated event = queue.take();
+                    sink.next(event);
+                }
+                catch (InterruptedException e) {
+                    ReflectionUtils.rethrowRuntimeException(e);
+                }
+        });
     }
 }

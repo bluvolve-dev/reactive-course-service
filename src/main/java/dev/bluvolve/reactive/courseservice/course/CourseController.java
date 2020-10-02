@@ -2,7 +2,6 @@ package dev.bluvolve.reactive.courseservice.course;
 
 import dev.bluvolve.reactive.courseservice.course.commands.CreateCourse;
 import dev.bluvolve.reactive.courseservice.course.events.CourseCreated;
-import dev.bluvolve.reactive.courseservice.course.listeners.ICourseCreatedEventListener;
 import dev.bluvolve.reactive.courseservice.course.mappers.CourseMapper;
 import dev.bluvolve.reactive.courseservice.course.processors.CourseCreatedEventProcessor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,15 +20,18 @@ import java.util.UUID;
 public class CourseController {
     private final CourseService courseService;
     private final CategoryService categoryService;
-    private final CourseCreatedEventProcessor processor;
+    private final CourseMapper mapper;
+    private final Flux<CourseCreated> events;
 
     public CourseController(CourseService courseService,
                             CategoryService categoryService,
-                            CourseCreatedEventProcessor processor) {
+                            CourseCreatedEventProcessor processor,
+                            CourseMapper mapper) {
 
         this.courseService = courseService;
         this.categoryService = categoryService;
-        this.processor = processor;
+        this.mapper = mapper;
+        this.events = Flux.create(processor).share();
     }
 
     @CrossOrigin
@@ -50,7 +52,10 @@ public class CourseController {
     @GetMapping(value = "/course/sse", produces = "text/event-stream;charset=UTF-8")
     public Flux<CourseDto> stream() {
         log.info("Start listening to the course collection.");
-        return this.createStream();
+        return this.events.map(event -> {
+            CourseDto dto = this.mapper.entityToDto((Course) event.getSource());
+            return dto;
+        });
     }
 
     @CrossOrigin()
@@ -79,28 +84,5 @@ public class CourseController {
             log.error(e.getMessage());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
-    }
-
-    private Flux<CourseDto> createStream() {
-        Flux<CourseDto> flux = Flux.create(sink -> {
-            processor.register(new ICourseCreatedEventListener() {
-                @Override
-                public void processComplete() {
-
-                    sink.complete();
-                }
-
-                @Override
-                public void onData(CourseCreated data, CourseMapper mapper) {
-                    log.debug("New course received. Start handling...");
-                    Course course = (Course) data.getSource();
-                    CourseDto dto = mapper.entityToDto(course);
-                    log.info("Course model '{}' generated from incoming data.", dto.toString());
-                    sink.next(dto);
-                }
-            });
-        });
-
-        return flux;
     }
 }
