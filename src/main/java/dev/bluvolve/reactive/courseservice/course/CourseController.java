@@ -48,9 +48,9 @@ public class CourseController {
 
     @CrossOrigin()
     @GetMapping(value = "/course/sse", produces = "text/event-stream;charset=UTF-8")
-    public Flux<CourseDto> listen() {
+    public Flux<CourseDto> stream() {
         log.info("Start listening to the course collection.");
-        return this.startCourseCreatedListener();
+        return this.createStream();
     }
 
     @CrossOrigin()
@@ -81,11 +81,12 @@ public class CourseController {
         }
     }
 
-    private Flux<CourseDto> startCourseCreatedListener() {
+    private Flux<CourseDto> createStream() {
         Flux<CourseDto> flux = Flux.create(sink -> {
             processor.register(new ICourseCreatedEventListener() {
                 @Override
                 public void processComplete() {
+
                     sink.complete();
                 }
 

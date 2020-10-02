@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 @Slf4j
 public class CourseMapper {
@@ -27,6 +29,7 @@ public class CourseMapper {
         Category category = this.categoryService.getById(command.getCategoryId());
 
         Course course = modelMapper.map(command, Course.class);
+        course.setId(UUID.randomUUID());
         course.setCategory(category);
 
         log.debug("Course entity {} with id {} initialized.", course.getTitle(), course.getId());

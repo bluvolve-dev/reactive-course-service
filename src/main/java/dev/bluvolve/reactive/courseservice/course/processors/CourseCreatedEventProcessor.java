@@ -24,20 +24,14 @@ public class CourseCreatedEventProcessor implements ApplicationListener<CourseCr
         this.listener = listener;
     }
 
-    public void onEvent(CourseCreated event) {
-        if (this.listener != null) {
-            this.listener.onData(event, mapper);
-        }
-    }
-
-    public void onComplete() {
-        if (this.listener != null) {
-            this.listener.processComplete();
-        }
-    }
-
     @Override
     public void onApplicationEvent(CourseCreated event) {
         this.onEvent(event);
+    }
+
+    private void onEvent(CourseCreated event) {
+        if (this.listener != null) {
+            this.listener.onData(event, mapper);
+        }
     }
 }

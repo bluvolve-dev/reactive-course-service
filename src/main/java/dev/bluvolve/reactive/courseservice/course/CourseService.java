@@ -10,15 +10,12 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
-import java.net.URI;
-import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 public class CourseService {
-    private final static String DEFAULT_THUMBNAIL = "https://unsplash.com/photos/ITDjGji__6Y";
 
     private final ICourseRepository courseRepository;
 
